@@ -140,5 +140,3 @@ def merge_match_data(match_id: str) -> dict | None:
         "specific": timeline
     }
 
-
-## Make sure that you associate each ban with a certain puuid making it a dictionary or something like that.
