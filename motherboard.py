@@ -7,7 +7,9 @@ from etl import merge_match_data
 from aggregators import (
     aggregate_by_champ,
     aggregate_by_role,
-    aggregate_by_winloss
+    aggregate_by_winloss,
+    compute_timeseries_stats,
+    compute_common_stats
 )
 from file_helpers import (
     save_raw_games,
