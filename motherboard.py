@@ -30,6 +30,10 @@ def index():
         game_count = int(request.form.get("gameCount"))
         agg_type = request.form.get("aggregationType")  # champ / role / winloss
 
+        # === Step 0: Validate OK gameCount ===
+        if not (5 <= game_count <= 25):
+            return render_template("index.html", error="Game count must be between 5 and 25")
+
         # === Step 1: Get PUUID ===
         puuid = get_puuid(summoner_name, tag_line)
         if not puuid:
