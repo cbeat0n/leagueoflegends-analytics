@@ -4,16 +4,16 @@ from pathlib import Path
 import os
 import json
 
-from riot_api import get_puuid, get_match_ids
-from etl import merge_match_data
-from aggregators import (
+from utils.riot_api import get_puuid, get_match_ids
+from utils.etl import merge_match_data
+from utils.aggregators import (
     aggregate_by_champ,
     aggregate_by_role,
     aggregate_by_winloss,
     compute_timeseries_stats,
     compute_common_stats
 )
-from file_helpers import (
+from utils.file_helpers import (
     save_raw_games,
     save_agg_by_champion,
     save_agg_by_role,
@@ -113,3 +113,5 @@ def load_old_aggregation():
                            timestamp=timestamp,
                            user_tag=user_tag,
                            success=True)
+if __name__ == '__main__':
+    app.run(debug=True)
