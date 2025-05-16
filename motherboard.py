@@ -82,8 +82,8 @@ def index():
             aggregation_data = winloss_data
 
         return render_template("index.html",
-                               aggregation_type=agg_type,
                                aggregation_data=aggregation_data,
+                               aggregation_type=agg_type,
                                timestamp=timestamp,
                                user_tag=user_tag,
                                success=True)

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LoL Analytics Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>League of Legends Analytics Dashboard</h1>
+
+    <!-- New Summoner Query -->
+    <form method="POST" action="/">
+      <h2>New Summoner Query</h2>
+      <label>Summoner Name:</label>
+      <input type="text" name="summonerName" required>
+      <label>Riot Tag:</label>
+      <input type="text" name="riotTag" required>
+      <label>Number of Games (5–25):</label>
+      <input type="number" name="gameCount" min="5" max="25" required>
+      <label>Aggregation Type:</label>
+      <select name="aggType">
+        <option value="champion">Champion</option>
+        <option value="role">Role</option>
+        <option value="winloss">Win/Loss</option>
+      </select>
+      <button type="submit">Run Analysis</button>
+    </form>
+
+    <!-- Load Saved Aggregation -->
+    <form method="POST" action="/load">
+      <h2>Load Saved Aggregation</h2>
+      <label>Summoner Tag:</label>
+      <input type="text" name="userTag" required>
+      <label>Date (YYYY-MM-DD):</label>
+      <input type="text" name="date" required>
+      <label>Timestamp (HHMMSS):</label>
+      <input type="text" name="timestamp" required>
+      <label>Aggregation Type:</label>
+      <select name="aggType">
+        <option value="champion">Champion</option>
+        <option value="role">Role</option>
+        <option value="winloss">Win/Loss</option>
+      </select>
+      <button type="submit">Load Aggregation</button>
+    </form>
+
+
+    {% if aggregation_data %}
+    <hr>
+    <h2>Results</h2>
+
+    {% for component, data in aggregation_data.items() %}
+      <div class="component-section">
+        <h3>Data for {{ component }}</h3>
+
+        <!-- Bar Charts -->
+        <div id="bar-kda-{{ component }}"></div>
+        <div id="bar-economy-{{ component }}"></div>
+        <div id="bar-damage-dealt-{{ component }}"></div>
+        <div id="bar-damage-taken-{{ component }}"></div>
+        <div id="bar-damage-mitigated-{{ component }}"></div>
+
+        <!-- Time Series Charts -->
+        <div id="ts-gold-{{ component }}"></div>
+        <div id="ts-xp-{{ component }}"></div>
+        <div id="ts-cs-{{ component }}"></div>
+        <div id="ts-level-{{ component }}"></div>
+        <div id="ts-gpm-{{ component }}"></div>
+        <div id="ts-xpm-{{ component }}"></div>
+        <div id="ts-cspm-{{ component }}"></div>
+      </div>
+    {% endfor %}
+
+    {% if aggregation_data %}
+      <script id="aggregation-json" type="application/json">
+        {{ aggregation_data | tojson | safe }}
+      </script>
+    {% endif %}
+
+    <script>
+      let aggregationData = {};
+
+      const jsonTag = document.getElementById("aggregation-json");
+      if (jsonTag) {
+        try {
+          aggregationData = JSON.parse(jsonTag.textContent);
+          console.log("Loaded aggregationData:", aggregationData);
+        } catch (e) {
+          console.error("Failed to parse aggregationData JSON", e);
+        }
+      }
+
+      for (const [component, data] of Object.entries(aggregationData)) {
+        const regular = data.regular;
+        const timeseries = data.timeseries;
+
+        const gameLabels = regular.games.map((g, i) => `Game ${i + 1}`);
+
+        // KDA Chart
+        Plotly.newPlot(`bar-kda-${component}`, [
+          { x: gameLabels, y: regular.games.map(g => g.kills), name: 'Kills', type: 'bar' },
+          { x: gameLabels, y: regular.games.map(g => g.deaths), name: 'Deaths', type: 'bar' },
+          { x: gameLabels, y: regular.games.map(g => g.assists), name: 'Assists', type: 'bar' }
+        ], {
+          title: `KDA per Game - ${component}`,
+          barmode: 'group',
+          yaxis: { title: 'Count' }
+        });
+
+        // Vision / Gold / CS
+        Plotly.newPlot(`bar-economy-${component}`, [
+          { x: gameLabels, y: regular.games.map(g => g.visionScore), name: 'Vision Score', type: 'bar' },
+          { x: gameLabels, y: regular.games.map(g => g.goldEarned), name: 'Gold', type: 'bar' },
+          { x: gameLabels, y: regular.games.map(g => g.cs), name: 'CS', type: 'bar' }
+        ], {
+          title: `Vision / Gold / CS per Game - ${component}`,
+          barmode: 'group',
+          yaxis: { title: 'Value' }
+        });
+
+        // Damage Plots
+        const damageTypes = [
+          { id: 'dealt', fields: ['damageDealt', 'damageDealtPhysical', 'damageDealtMagic', 'damageDealtTrue'] },
+          { id: 'taken', fields: ['damageTaken', 'damageTakenPhysical', 'damageTakenMagic', 'damageTakenTrue'] },
+          { id: 'mitigated', fields: ['damageMitigated', 'damageMitigatedPhysical', 'damageMitigatedMagic', 'damageMitigatedTrue'] }
+        ];
+        const dmgLabels = ['Total', 'Physical', 'Magic', 'True'];
+
+        damageTypes.forEach(dmg => {
+          const traces = dmg.fields.map((field, i) => ({
+            x: gameLabels,
+            y: regular.games.map(g => g[field]),
+            name: dmgLabels[i],
+            type: 'bar'
+          }));
+
+          Plotly.newPlot(`bar-damage-${dmg.id}-${component}`, traces, {
+            title: `Damage ${dmg.id.charAt(0).toUpperCase() + dmg.id.slice(1)} - ${component}`,
+            barmode: 'group',
+            yaxis: { title: 'Damage' }
+          });
+        });
+
+        // Time Series
+        const tsFields = ['gold', 'xp', 'cs', 'level', 'gpm', 'xpm', 'cspm'];
+        const time = timeseries.timestamps;
+
+        tsFields.forEach(field => {
+          const traces = timeseries[field].map((series, i) => ({
+            x: time,
+            y: series,
+            name: `Game ${i + 1}`,
+            mode: 'lines'
+          }));
+
+          Plotly.newPlot(`ts-${field}-${component}`, traces, {
+            title: `${field.toUpperCase()} Over Time - ${component}`,
+            xaxis: { title: 'Time' },
+            yaxis: { title: field.toUpperCase() }
+          });
+        });
+      }
+    </script>
+    {% endif %}
+  </div>
+</body>
+</html>
