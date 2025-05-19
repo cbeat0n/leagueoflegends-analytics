@@ -29,7 +29,7 @@ def get_puuid(game_name, tag_line):
     """
 
     # Endpoint to get account info by Riot ID
-    endpoint = f"/riot/account/v1/accounts/by-riot-id/{urllib.parse.quote(game_name)}/{urllib.parse.quote(tag_line)}"
+    endpoint = f"/riot/account/v1/accounts/by-riot-id/{urllib.parse.quote(str(game_name))}/{urllib.parse.quote(str(tag_line))}"
     
     # Construct the full URL
     url = base_url + endpoint
