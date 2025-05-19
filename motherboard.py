@@ -96,7 +96,7 @@ def load_old_aggregation():
     user_tag = request.form.get("userTag").lower()
     date = request.form.get("date")
     timestamp = request.form.get("timestamp")
-    agg_type = request.form.get("aggType")
+    agg_type = request.form.get("aggregationType")
 
     filename = f"agg_by_{agg_type}_{user_tag}_{timestamp}.json"
     filepath = os.path.join("data", date, filename)

@@ -20,7 +20,7 @@
       <label>Number of Games (5–25):</label>
       <input type="number" name="gameCount" min="5" max="25" required>
       <label>Aggregation Type:</label>
-      <select name="aggType">
+      <select name="aggregationType">
         <option value="champion">Champion</option>
         <option value="role">Role</option>
         <option value="winloss">Win/Loss</option>
@@ -38,7 +38,7 @@
       <label>Timestamp (HHMMSS):</label>
       <input type="text" name="timestamp" required>
       <label>Aggregation Type:</label>
-      <select name="aggType">
+      <select name="aggregationType">
         <option value="champion">Champion</option>
         <option value="role">Role</option>
         <option value="winloss">Win/Loss</option>
@@ -96,52 +96,53 @@
         const regular = data.regular;
         const timeseries = data.timeseries;
 
-        const gameLabels = regular.games.map((g, i) => `Game ${i + 1}`);
+        const gameLabels = ["Average"];
 
         // KDA Chart
         Plotly.newPlot(`bar-kda-${component}`, [
-          { x: gameLabels, y: regular.games.map(g => g.kills), name: 'Kills', type: 'bar' },
-          { x: gameLabels, y: regular.games.map(g => g.deaths), name: 'Deaths', type: 'bar' },
-          { x: gameLabels, y: regular.games.map(g => g.assists), name: 'Assists', type: 'bar' }
+        { x: gameLabels, y: [regular.avgKills], name: 'Kills', type: 'bar' },
+        { x: gameLabels, y: [regular.avgDeaths], name: 'Deaths', type: 'bar' },
+        { x: gameLabels, y: [regular.avgAssists], name: 'Assists', type: 'bar' }
         ], {
-          title: `KDA per Game - ${component}`,
-          barmode: 'group',
-          yaxis: { title: 'Count' }
+        title: `KDA per Game - ${component}`,
+        barmode: 'group',
+        yaxis: { title: 'Count' }
         });
 
         // Vision / Gold / CS
         Plotly.newPlot(`bar-economy-${component}`, [
-          { x: gameLabels, y: regular.games.map(g => g.visionScore), name: 'Vision Score', type: 'bar' },
-          { x: gameLabels, y: regular.games.map(g => g.goldEarned), name: 'Gold', type: 'bar' },
-          { x: gameLabels, y: regular.games.map(g => g.cs), name: 'CS', type: 'bar' }
+        { x: gameLabels, y: [regular.avgVisionScore], name: 'Vision Score', type: 'bar' },
+        { x: gameLabels, y: [regular.avgGold], name: 'Gold', type: 'bar' },
+        { x: gameLabels, y: [regular.avgCS], name: 'CS', type: 'bar' }
         ], {
-          title: `Vision / Gold / CS per Game - ${component}`,
-          barmode: 'group',
-          yaxis: { title: 'Value' }
+        title: `Vision / Gold / CS per Game - ${component}`,
+        barmode: 'group',
+        yaxis: { title: 'Value' }
         });
 
-        // Damage Plots
+        // Damage Plots (Total, Physical, Magic, True)
         const damageTypes = [
-          { id: 'dealt', fields: ['damageDealt', 'damageDealtPhysical', 'damageDealtMagic', 'damageDealtTrue'] },
-          { id: 'taken', fields: ['damageTaken', 'damageTakenPhysical', 'damageTakenMagic', 'damageTakenTrue'] },
-          { id: 'mitigated', fields: ['damageMitigated', 'damageMitigatedPhysical', 'damageMitigatedMagic', 'damageMitigatedTrue'] }
+        { id: 'dealt', fields: ['avgDamageDealt', 'avgDamageDealtPhysical', 'avgDamageDealtMagic', 'avgDamageDealtTrue'] },
+        { id: 'taken', fields: ['avgDamageTaken', 'avgDamageTakenPhysical', 'avgDamageTakenMagic', 'avgDamageTakenTrue'] },
+        { id: 'mitigated', fields: ['avgMitigated', 'avgMitigatedPhysical', 'avgMitigatedMagic', 'avgMitigatedTrue'] }
         ];
         const dmgLabels = ['Total', 'Physical', 'Magic', 'True'];
 
         damageTypes.forEach(dmg => {
-          const traces = dmg.fields.map((field, i) => ({
+        const traces = dmg.fields.map((field, i) => ({
             x: gameLabels,
-            y: regular.games.map(g => g[field]),
+            y: [regular[field]],
             name: dmgLabels[i],
             type: 'bar'
-          }));
+        }));
 
-          Plotly.newPlot(`bar-damage-${dmg.id}-${component}`, traces, {
+        Plotly.newPlot(`bar-damage-${dmg.id}-${component}`, traces, {
             title: `Damage ${dmg.id.charAt(0).toUpperCase() + dmg.id.slice(1)} - ${component}`,
             barmode: 'group',
             yaxis: { title: 'Damage' }
-          });
         });
+        });
+
 
         // Time Series
         const tsFields = ['gold', 'xp', 'cs', 'level', 'gpm', 'xpm', 'cspm'];
