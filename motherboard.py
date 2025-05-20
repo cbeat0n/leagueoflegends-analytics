@@ -22,7 +22,6 @@ from utils.file_helpers import (
     get_time_suffix
 )
 
-
 app = Flask(__name__)
 
 @app.route("/", methods=["GET", "POST"])
@@ -60,7 +59,8 @@ def index():
 
         # === Step 4: Generate timestamp & save raw ===
         user_tag = summoner_name.lower()
-        timestamp = get_time_suffix()
+        
+        
 
         save_raw_games(zipped_games, user_tag)
 
@@ -81,17 +81,21 @@ def index():
         else:
             aggregation_data = winloss_data
 
+        timestamp = get_time_suffix()
+        datestamp = datetime.today().strftime('%Y-%m-%d')
+        
         return render_template("index.html",
                                aggregation_data=aggregation_data,
                                aggregation_type=agg_type,
                                timestamp=timestamp,
                                user_tag=user_tag,
+                               date = datestamp,
                                success=True)
 
     return render_template("index.html")
 
 
-@app.route("/load", methods=["POST"])
+@app.route("/load", methods=["GET","POST"])
 def load_old_aggregation():
     user_tag = request.form.get("userTag").lower()
     date = request.form.get("date")
@@ -112,6 +116,29 @@ def load_old_aggregation():
                            aggregation_type=agg_type,
                            timestamp=timestamp,
                            user_tag=user_tag,
+                           date = date,
                            success=True)
+
+@app.route("/visualize/<component>", methods=["GET"])
+def visualize_component(component):
+    user_tag = request.args.get("userTag")
+    timestamp = request.args.get("timestamp")
+    agg_type = request.args.get("aggregationType")
+    date = request.args.get("date")
+
+    if not all([user_tag, timestamp, agg_type, date]):
+        return f"<h1>Missing required data</h1><p>{user_tag=}, {timestamp=}, {agg_type=}, {date=}</p>"
+
+    try:
+        filename = f"agg_by_{agg_type}_{user_tag}_{timestamp}.json"
+        path = os.path.join("data", date, filename)
+        with open(path, "r") as f:
+            full_data = json.load(f)
+            data = full_data.get(component, {})
+    except Exception as e:
+        return f"<h1>Error loading data for {component}</h1><p>{e}</p>"
+
+    return render_template("component_view.html", component=component, aggregation_data=data)
+
 if __name__ == '__main__':
     app.run(debug=True)

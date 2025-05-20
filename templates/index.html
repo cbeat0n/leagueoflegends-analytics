@@ -4,167 +4,76 @@
   <meta charset="UTF-8">
   <title>LoL Analytics Dashboard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    form { margin-bottom: 30px; }
+    label { display: block; margin-top: 10px; }
+    input, select, button { width: 100%; padding: 5px; margin-top: 5px; }
+    .info-box { background: #f4f4f4; padding: 15px; border-left: 5px solid #555; margin-bottom: 20px; }
+    .component-button { margin: 5px 0; padding: 8px 12px; background: #007bff; color: white; border: none; cursor: pointer; }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>League of Legends Analytics Dashboard</h1>
+  <h1>League of Legends Analytics Dashboard</h1>
 
-    <!-- New Summoner Query -->
-    <form method="POST" action="/">
-      <h2>New Summoner Query</h2>
-      <label>Summoner Name:</label>
-      <input type="text" name="summonerName" required>
-      <label>Riot Tag:</label>
-      <input type="text" name="tagLine" required>
-      <label>Number of Games (5–25):</label>
-      <input type="number" name="gameCount" min="5" max="25" required>
-      <label>Aggregation Type:</label>
-      <select name="aggregationType">
-        <option value="champion">Champion</option>
-        <option value="role">Role</option>
-        <option value="winloss">Win/Loss</option>
-      </select>
-      <button type="submit">Run Analysis</button>
-    </form>
+  <!-- Query Form -->
+  <form method="POST" action="/">
+    <h2>New Summoner Query</h2>
+    <label>Summoner Name:</label>
+    <input type="text" name="summonerName" required>
+    <label>Riot Tag:</label>
+    <input type="text" name="tagLine" required>
+    <label>Number of Games (5–25):</label>
+    <input type="number" name="gameCount" min="5" max="25" required>
+    <label>Aggregation Type:</label>
+    <select name="aggregationType">
+      <option value="champion">Champion</option>
+      <option value="role">Role</option>
+      <option value="winloss">Win/Loss</option>
+    </select>
+    <button type="submit">Run Analysis</button>
+  </form>
 
-    <!-- Load Saved Aggregation -->
-    <form method="POST" action="/load">
-      <h2>Load Saved Aggregation</h2>
-      <label>Summoner Tag:</label>
-      <input type="text" name="userTag" required>
-      <label>Date (YYYY-MM-DD):</label>
-      <input type="text" name="date" required>
-      <label>Timestamp (HHMMSS):</label>
-      <input type="text" name="timestamp" required>
-      <label>Aggregation Type:</label>
-      <select name="aggregationType">
-        <option value="champion">Champion</option>
-        <option value="role">Role</option>
-        <option value="winloss">Win/Loss</option>
-      </select>
-      <button type="submit">Load Aggregation</button>
-    </form>
+  <!-- Load Saved Aggregation -->
+  <form method="POST" action="/load">
+    <h2>Load Saved Aggregation</h2>
+    <label>Summoner Tag:</label>
+    <input type="text" name="userTag" required>
+    <label>Date (YYYY-MM-DD):</label>
+    <input type="text" name="date" required>
+    <label>Timestamp (HHMMSS):</label>
+    <input type="text" name="timestamp" required>
+    <label>Aggregation Type:</label>
+    <select name="aggregationType">
+      <option value="champion">Champion</option>
+      <option value="role">Role</option>
+      <option value="winloss">Win/Loss</option>
+    </select>
+    <button type="submit">Load Aggregations</button>
+  </form>
 
-
-    {% if aggregation_data %}
-    <hr>
-    <h2>Results</h2>
-
-    {% for component, data in aggregation_data.items() %}
-      <div class="component-section">
-        <h3>Data for {{ component }}</h3>
-
-        <!-- Bar Charts -->
-        <div id="bar-kda-{{ component }}"></div>
-        <div id="bar-economy-{{ component }}"></div>
-        <div id="bar-damage-dealt-{{ component }}"></div>
-        <div id="bar-damage-taken-{{ component }}"></div>
-        <div id="bar-damage-mitigated-{{ component }}"></div>
-
-        <!-- Time Series Charts -->
-        <div id="ts-gold-{{ component }}"></div>
-        <div id="ts-xp-{{ component }}"></div>
-        <div id="ts-cs-{{ component }}"></div>
-        <div id="ts-level-{{ component }}"></div>
-        <div id="ts-gpm-{{ component }}"></div>
-        <div id="ts-xpm-{{ component }}"></div>
-        <div id="ts-cspm-{{ component }}"></div>
-      </div>
-    {% endfor %}
-
-    {% if aggregation_data %}
-      <script id="aggregation-json" type="application/json">
-        {{ aggregation_data | tojson | safe }}
-      </script>
-    {% endif %}
-
-    <script>
-      let aggregationData = {};
-
-      const jsonTag = document.getElementById("aggregation-json");
-      if (jsonTag) {
-        try {
-          aggregationData = JSON.parse(jsonTag.textContent);
-          console.log("Loaded aggregationData:", aggregationData);
-        } catch (e) {
-          console.error("Failed to parse aggregationData JSON", e);
-        }
-      }
-
-      for (const [component, data] of Object.entries(aggregationData)) {
-        const regular = data.regular;
-        const timeseries = data.timeseries;
-
-        const gameLabels = ["Average"];
-
-        // KDA Chart
-        Plotly.newPlot(`bar-kda-${component}`, [
-        { x: gameLabels, y: [regular.avgKills], name: 'Kills', type: 'bar' },
-        { x: gameLabels, y: [regular.avgDeaths], name: 'Deaths', type: 'bar' },
-        { x: gameLabels, y: [regular.avgAssists], name: 'Assists', type: 'bar' }
-        ], {
-        title: `KDA per Game - ${component}`,
-        barmode: 'group',
-        yaxis: { title: 'Count' }
-        });
-
-        // Vision / Gold / CS
-        Plotly.newPlot(`bar-economy-${component}`, [
-        { x: gameLabels, y: [regular.avgVisionScore], name: 'Vision Score', type: 'bar' },
-        { x: gameLabels, y: [regular.avgGold], name: 'Gold', type: 'bar' },
-        { x: gameLabels, y: [regular.avgCS], name: 'CS', type: 'bar' }
-        ], {
-        title: `Vision / Gold / CS per Game - ${component}`,
-        barmode: 'group',
-        yaxis: { title: 'Value' }
-        });
-
-        // Damage Plots (Total, Physical, Magic, True)
-        const damageTypes = [
-        { id: 'dealt', fields: ['avgDamageDealt', 'avgDamageDealtPhysical', 'avgDamageDealtMagic', 'avgDamageDealtTrue'] },
-        { id: 'taken', fields: ['avgDamageTaken', 'avgDamageTakenPhysical', 'avgDamageTakenMagic', 'avgDamageTakenTrue'] },
-        { id: 'mitigated', fields: ['avgMitigated', 'avgMitigatedPhysical', 'avgMitigatedMagic', 'avgMitigatedTrue'] }
-        ];
-        const dmgLabels = ['Total', 'Physical', 'Magic', 'True'];
-
-        damageTypes.forEach(dmg => {
-        const traces = dmg.fields.map((field, i) => ({
-            x: gameLabels,
-            y: [regular[field]],
-            name: dmgLabels[i],
-            type: 'bar'
-        }));
-
-        Plotly.newPlot(`bar-damage-${dmg.id}-${component}`, traces, {
-            title: `Damage ${dmg.id.charAt(0).toUpperCase() + dmg.id.slice(1)} - ${component}`,
-            barmode: 'group',
-            yaxis: { title: 'Damage' }
-        });
-        });
-
-
-        // Time Series
-        const tsFields = ['gold', 'xp', 'cs', 'level', 'gpm', 'xpm', 'cspm'];
-        const time = timeseries.timestamps;
-
-        tsFields.forEach(field => {
-          const traces = timeseries[field].map((series, i) => ({
-            x: time,
-            y: series,
-            name: `Game ${i + 1}`,
-            mode: 'lines'
-          }));
-
-          Plotly.newPlot(`ts-${field}-${component}`, traces, {
-            title: `${field.toUpperCase()} Over Time - ${component}`,
-            xaxis: { title: 'Time' },
-            yaxis: { title: field.toUpperCase() }
-          });
-        });
-      }
-    </script>
-    {% endif %}
+  {% if user_tag %}
+  <div class="info-box">
+    <p><strong>Summoner Tag:</strong> {{ user_tag }}</p>
+    <p><strong>Date:</strong> {{ date }}</p>
+    <p><strong>Timestamp:</strong> {{ timestamp }}</p>
+    <p><strong>Aggregation Type:</strong> {{ aggregation_type }}</p>
   </div>
+  {% endif %}
+
+  {% if aggregation_data %}
+  <h2>Visualizations</h2>
+  <p>Click a button to open visualizations in a new tab:</p>
+  {% for component in aggregation_data.keys() %}
+      <form method="GET" action="/visualize/{{ component }}"  target="_blank">
+        <input type="hidden" name="userTag" value="{{ user_tag }}">
+        <input type="hidden" name="timestamp" value="{{ timestamp }}">
+        <input type="hidden" name="aggregationType" value="{{ aggregation_type }}">
+        <input type="hidden" name="date" value="{{ date }}">
+        <button type="submit">Open Visualizations for {{ component }}</button>
+      </form>
+
+  {% endfor %}
+  {% endif %}
 </body>
 </html>

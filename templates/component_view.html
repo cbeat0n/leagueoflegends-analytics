@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ component }} Visualizations</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .plot-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    h1, h2 { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Visualizations for {{ component }}</h1>
+
+  <div class="plot-group">
+    <div id="bar-kda"></div>
+    <div id="bar-economy"></div>
+    <div id="bar-damage-dealt"></div>
+    <div id="bar-damage-taken"></div>
+    <div id="bar-damage-mitigated"></div>
+  </div>
+
+  <div class="plot-group">
+    <div id="ts-gold"></div>
+    <div id="ts-xp"></div>
+    <div id="ts-cs"></div>
+    <div id="ts-level"></div>
+    <div id="ts-gpm"></div>
+    <div id="ts-xpm"></div>
+    <div id="ts-cspm"></div>
+  </div>
+
+    {% if aggregation_data %}
+      <script id="aggregation-json" type="application/json">
+        {{ aggregation_data | tojson | safe }}
+      </script>
+    {% endif %}
+
+  <script>
+    
+
+    let aggData = {};
+
+    const jsonTag = document.getElementById("aggregation-json");
+      if (jsonTag) {
+        try {
+          aggData = JSON.parse(jsonTag.textContent);
+          console.log("Loaded aggregationData:", aggData);
+        } catch (e) {
+          console.error("Failed to parse aggregationData JSON", e);
+        }
+      }
+
+    const data = aggData;
+    const regular = data.regular;
+    const timeseries = data.timeseries;
+    const gameLabels = ["Average"];
+
+    Plotly.newPlot('bar-kda', [
+      { x: gameLabels, y: [regular.avgKills], name: 'Kills', type: 'bar' },
+      { x: gameLabels, y: [regular.avgDeaths], name: 'Deaths', type: 'bar' },
+      { x: gameLabels, y: [regular.avgAssists], name: 'Assists', type: 'bar' }
+    ], { title: 'KDA', barmode: 'group' });
+
+    Plotly.newPlot('bar-economy', [
+      { x: gameLabels, y: [regular.avgVisionScore], name: 'Vision', type: 'bar' },
+      { x: gameLabels, y: [regular.avgGold], name: 'Gold', type: 'bar' },
+      { x: gameLabels, y: [regular.avgCS], name: 'CS', type: 'bar' }
+    ], { title: 'Vision / Gold / CS', barmode: 'group' });
+
+    const dmgTypes = {
+      'dealt': ['avgDamageDealt', 'avgDamageDealtPhysical', 'avgDamageDealtMagic', 'avgDamageDealtTrue'],
+      'taken': ['avgDamageTaken', 'avgDamageTakenPhysical', 'avgDamageTakenMagic', 'avgDamageTakenTrue'],
+      'mitigated': ['avgMitigated', 'avgMitigatedPhysical', 'avgMitigatedMagic', 'avgMitigatedTrue']
+    };
+    const dmgLabels = ['Total', 'Physical', 'Magic', 'True'];
+
+    for (const [type, fields] of Object.entries(dmgTypes)) {
+      const traces = fields.map((f, i) => ({
+        x: gameLabels,
+        y: [regular[f]],
+        name: dmgLabels[i],
+        type: 'bar'
+      }));
+      Plotly.newPlot(`bar-damage-${type}`, traces, {
+        title: `Damage ${type.charAt(0).toUpperCase() + type.slice(1)}`,
+        barmode: 'group'
+      });
+    }
+
+    const tsFields = ['gold', 'xp', 'cs', 'level', 'gpm', 'xpm', 'cspm'];
+    const time = timeseries.timestamps;
+    tsFields.forEach(field => {
+      const traces = timeseries[field].map((series, i) => ({
+        x: time, y: series, name: `Game ${i + 1}`, mode: 'lines'
+      }));
+      Plotly.newPlot(`ts-${field}`, traces, {
+        title: `${field.toUpperCase()} Over Time`,
+        xaxis: { title: 'Time' },
+        yaxis: { title: field.toUpperCase() }
+      });
+    });
+  </script>
+</body>
+</html>

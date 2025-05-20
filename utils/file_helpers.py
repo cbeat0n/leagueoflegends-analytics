@@ -35,7 +35,7 @@ def save_agg_by_champion(data: dict, user_tag: str):
     path = os.path.join(folder, filename)
     with open(path, "w") as f:
         json.dump(data, f, indent=4)
-
+    
 
 # Save aggregated by role
 def save_agg_by_role(data: dict, user_tag: str):
@@ -55,3 +55,4 @@ def save_agg_by_winloss(data: dict, user_tag: str):
     path = os.path.join(folder, filename)
     with open(path, "w") as f:
         json.dump(data, f, indent=4)
+
