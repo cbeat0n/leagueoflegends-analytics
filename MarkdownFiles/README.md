@@ -128,7 +128,7 @@ Select aggregation mode:
     - Role
     - Win/Loss
 
-Submit the form to pull live data, aggregate it, and render visualizations.
+Submit the form to pull live data, aggregate it, and render visualizations via a button you click on.
 
 **Load from Storage**
 
@@ -139,6 +139,8 @@ Provide summoner name, choose the aggregation type.
 Enter date and timestamp (from saved folder name).
 
 This skips the Riot API and shows the stored plots instantly.
+
+Once again click on the buttons to choose which visualizations to open.
 
 
 ## 2. Table of Contents
